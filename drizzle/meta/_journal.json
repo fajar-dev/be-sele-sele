@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1768128281650,
+      "tag": "0000_cooing_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1768128922263,
+      "tag": "0001_same_charles_xavier",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1768129496074,
+      "tag": "0002_parallel_mantis",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1768275516890,
+      "tag": "0003_loving_golden_guardian",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1768287058241,
+      "tag": "0004_true_ironclad",
+      "breakpoints": true
+    }
+  ]
+}
