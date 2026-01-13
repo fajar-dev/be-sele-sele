@@ -11,10 +11,13 @@ const pageRepo = new PageRepositoryImpl();
 const pageUsecase = new PageUsecase(pageRepo);
 const pageHandler = new PageHandler(pageUsecase);
 
+import { RefreshTokenRepositoryImpl } from '../../data/repository/refreshTokenRepositoryImpl';
+
 // Auth Deps
 // Ensure these env vars are set!
 const userRepo = new UserRepositoryImpl();
-const authUsecase = new AuthUsecase(userRepo);
+const refreshTokenRepo = new RefreshTokenRepositoryImpl();
+const authUsecase = new AuthUsecase(userRepo, refreshTokenRepo);
 const authHandler = new AuthHandler(authUsecase);
 
 
@@ -51,6 +54,7 @@ router.post('/api/pages/:id', (c) => pageHandler.updateContent(c));
 
 // Auth
 router.post('/api/auth/login', (c) => authHandler.login(c));
+router.post('/api/auth/refresh', (c) => authHandler.refresh(c));
 router.get('/api/auth/me', authMiddleware, (c) => authHandler.me(c));
 router.post('/api/auth/logout', authMiddleware, (c) => authHandler.logout(c));
 

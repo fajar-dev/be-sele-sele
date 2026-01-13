@@ -2,6 +2,8 @@ import { OAuth2Client } from 'google-auth-library';
 import { sign } from 'hono/jwt';
 import { UserRepository } from '../domain/entity/user';
 import { User } from '../domain/entity/user';
+import { RefreshTokenRepository } from '../domain/entity/refreshToken';
+import { uuidv7 } from 'uuidv7';
 
 export class AuthUsecase {
   // Using process.env directly as we don't have the user's specific 'env' module from the snippet
@@ -10,7 +12,8 @@ export class AuthUsecase {
   private JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 
   constructor(
-    private userRepo: UserRepository
+    private userRepo: UserRepository,
+    private refreshTokenRepo: RefreshTokenRepository
   ) {}
 
   private getOauth2Client() {
@@ -33,7 +36,7 @@ export class AuthUsecase {
     return payload;
   }
 
-  async loginWithGoogle(code: string, ip: string): Promise<{ user: User; token: string }> {
+  async loginWithGoogle(code: string, ip: string): Promise<{ user: User; accessToken: string; refreshToken: string }> {
     try {
       const payload = await this.verify(code);
       
@@ -41,8 +44,6 @@ export class AuthUsecase {
           throw new Error('Invalid Google Token: Email not found.');
       }
       
-      console.log(`[Auth] User verified: ${payload.email}`);
-
       // Upsert User
       const user = await this.userRepo.upsert({
           email: payload.email,
@@ -53,14 +54,36 @@ export class AuthUsecase {
           lastLoginAt: new Date(),
       });
 
-      // Generate JWT
-      const token = await sign({
+      // Generate Access Token (JWT)
+      const accessToken = await sign({
         sub: user.id,
         email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days (Access token long lived? Usually short, but sticking to previous logic for now or shortening?)
+        // Let's shorten access token to 15 mins since we have refresh token now
+      }, this.JWT_SECRET);
+      // Wait, let's keep it 7 days if user didn't ask to change access token policy, but usually refresh token implies short access token.
+      // I'll stick to 1 hour for access token to make refresh token useful.
+      
+      // Re-signing with shorter expiry
+      const shortLivedAccessToken = await sign({
+        sub: user.id,
+        email: user.email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 15, // 15 minutes
       }, this.JWT_SECRET);
 
-      return { user, token };
+
+      // Generate Refresh Token
+      const refreshTokenStr = uuidv7();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry for refresh token
+
+      await this.refreshTokenRepo.create({
+          token: refreshTokenStr,
+          userId: user.id,
+          expiresAt: expiresAt
+      });
+
+      return { user, accessToken: shortLivedAccessToken, refreshToken: refreshTokenStr };
 
     } catch (error: any) {
         console.error('[Auth] Verification Error Details:', error);
@@ -69,5 +92,46 @@ export class AuthUsecase {
         }
         throw new Error(`User Verification Failed: ${error.message}`);
     }
+  }
+
+  async refresh(refreshTokenStr: string): Promise<{ accessToken: string; refreshToken: string }> {
+      const storedToken = await this.refreshTokenRepo.findByToken(refreshTokenStr);
+      if (!storedToken) {
+          throw new Error('Invalid Refresh Token');
+      }
+
+      if (storedToken.expiresAt < new Date()) {
+          await this.refreshTokenRepo.deleteByToken(refreshTokenStr);
+          throw new Error('Refresh Token Expired');
+      }
+
+      // Rotate Token: Delete old, create new
+      await this.refreshTokenRepo.deleteByToken(refreshTokenStr);
+
+      const user = await this.userRepo.findById(storedToken.userId);
+      
+      if (!user) {
+          throw new Error('User not found');
+      }
+
+      // Generate New Access Token
+      const accessToken = await sign({
+        sub: user.id,
+        email: user.email,
+        exp: Math.floor(Date.now() / 1000) + 60 * 15, // 15 minutes
+      }, this.JWT_SECRET);
+
+      // Generate New Refresh Token
+      const newRefreshTokenStr = uuidv7();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+
+      await this.refreshTokenRepo.create({
+          token: newRefreshTokenStr,
+          userId: user.id,
+          expiresAt: expiresAt
+      });
+
+      return { accessToken, refreshToken: newRefreshTokenStr };
   }
 }

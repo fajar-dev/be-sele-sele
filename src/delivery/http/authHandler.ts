@@ -21,14 +21,15 @@ export class AuthHandler {
       // c.req.header('x-forwarded-for') or similar.
       const ip = c.req.header('x-forwarded-for') || '127.0.0.1';
 
-      const { user, token } = await this.authUsecase.loginWithGoogle(code as string, ip);
+      const { user, accessToken, refreshToken } = await this.authUsecase.loginWithGoogle(code as string, ip);
 
       return c.json({
         success: true,
         message: 'Login successful',
         data: {
           user,
-          token
+          accessToken,
+          refreshToken
         }
       });
     } catch (error: any) {
@@ -36,6 +37,39 @@ export class AuthHandler {
       return c.json({
         success: false,
         message: error.message || 'Authentication failed',
+        data: null
+      }, 401);
+    }
+  }
+
+  async refresh(c: Context) {
+    try {
+      const body = await c.req.json();
+      const refreshToken = body.refreshToken;
+
+      if (!refreshToken) {
+        return c.json({
+          success: false,
+          message: 'Refresh Token is required',
+          data: null
+        }, 400);
+      }
+
+      const { accessToken, refreshToken: newRefreshToken } = await this.authUsecase.refresh(refreshToken);
+
+      return c.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          accessToken,
+          refreshToken: newRefreshToken
+        }
+      });
+    } catch (error: any) {
+      console.error(error);
+      return c.json({
+        success: false,
+        message: error.message || 'Refresh failed',
         data: null
       }, 401);
     }

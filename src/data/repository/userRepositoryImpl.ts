@@ -10,6 +10,11 @@ export class UserRepositoryImpl implements UserRepository {
     return result[0] || null;
   }
 
+  async findById(id: string): Promise<User | null> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0] || null;
+  }
+
   async upsert(data: { email: string; sub?: string; name?: string; avatar?: string; lastLoginIp: string | null; lastLoginAt: Date }): Promise<User> {
     const existing = await this.findByEmail(data.email);
 

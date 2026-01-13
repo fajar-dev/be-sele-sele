@@ -13,5 +13,6 @@ export interface User {
 
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
+  findById(id: string): Promise<User | null>;
   upsert(user: { email: string; sub?: string; name?: string; avatar?: string; lastLoginIp: string | null; lastLoginAt: Date }): Promise<User>;
 }
