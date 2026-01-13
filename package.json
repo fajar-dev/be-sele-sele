@@ -1,14 +1,18 @@
 {
   "name": "be-sele-sele",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "partykit:dev": "partykit dev src/partykit/server.ts",
+    "partykit:deploy": "partykit deploy src/partykit/server.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
     "google-auth-library": "^10.5.0",
     "hono": "^4.11.3",
     "mysql2": "^3.16.0",
+    "partykit": "^0.0.115",
     "uuidv7": "^1.1.0",
+    "y-partykit": "^0.0.33",
     "zod": "^4.3.5"
   },
   "devDependencies": {
