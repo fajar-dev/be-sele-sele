@@ -345,4 +345,17 @@ export class PageHandler {
       }
     });
   }
+
+  async getPermission(c: Context) {
+    const user = this.getUser(c);
+    const id = c.req.param('id');
+    
+    const permission = await this.pageUsecase.getPermission(id, user.email);
+
+    return c.json({
+      success: true,
+      message: 'Permission retrieved successfully',
+      data: permission
+    });
+  }
 }

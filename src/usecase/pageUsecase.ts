@@ -101,4 +101,9 @@ export class PageUsecase {
        return null;
     }
   }
+
+  async getPermission(id: string, userEmail: string): Promise<{ isOwner: boolean }> {
+    const isOwner = await this.pageRepo.checkOwnership(id, userEmail);
+    return { isOwner };
+  }
 }

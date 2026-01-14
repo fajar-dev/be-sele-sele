@@ -58,24 +58,13 @@ export class AuthUsecase {
       const accessToken = await sign({
         sub: user.id,
         email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days (Access token long lived? Usually short, but sticking to previous logic for now or shortening?)
-        // Let's shorten access token to 15 mins since we have refresh token now
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
       }, this.JWT_SECRET);
-      // Wait, let's keep it 7 days if user didn't ask to change access token policy, but usually refresh token implies short access token.
-      // I'll stick to 1 hour for access token to make refresh token useful.
-      
-      // Re-signing with shorter expiry
-      const shortLivedAccessToken = await sign({
-        sub: user.id,
-        email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 15, // 15 minutes
-      }, this.JWT_SECRET);
-
 
       // Generate Refresh Token
       const refreshTokenStr = uuidv7();
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry for refresh token
+      expiresAt.setDate(expiresAt.getDate() + 14); // 14 days expiry for refresh token
 
       await this.refreshTokenRepo.create({
           token: refreshTokenStr,
@@ -83,7 +72,7 @@ export class AuthUsecase {
           expiresAt: expiresAt
       });
 
-      return { user, accessToken: shortLivedAccessToken, refreshToken: refreshTokenStr };
+      return { user, accessToken, refreshToken: refreshTokenStr };
 
     } catch (error: any) {
         console.error('[Auth] Verification Error Details:', error);
@@ -118,13 +107,13 @@ export class AuthUsecase {
       const accessToken = await sign({
         sub: user.id,
         email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 15, // 15 minutes
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
       }, this.JWT_SECRET);
 
       // Generate New Refresh Token
       const newRefreshTokenStr = uuidv7();
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
+      expiresAt.setDate(expiresAt.getDate() + 14); // 14 days
 
       await this.refreshTokenRepo.create({
           token: newRefreshTokenStr,

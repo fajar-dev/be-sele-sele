@@ -36,6 +36,7 @@ router.put('/api/pages/:id', (c) => pageHandler.updatePage(c));
 router.delete('/api/pages/:id', (c) => pageHandler.deletePage(c));
 
 // Members
+
 router.get('/api/pages/:id/member', (c) => pageHandler.getMembers(c));
 router.put('/api/pages/:id/member', (c) => pageHandler.addMember(c)); // User asked for PUT/DELETE to /pages/:id/member for adding/removing?
 // Prompt: "buat endpoint /pages/:id/member isinya, put,delete ke table collaborations."
@@ -55,6 +56,7 @@ router.get('/api/pages/:id/md', (c) => pageHandler.downloadMarkdown(c));
 router.get('/api/pages/:id/pdf', (c) => pageHandler.downloadPdf(c));
 router.post('/api/pages/:id/content', (c) => pageHandler.updateContent(c));
 router.get('/api/pages/:id/content', (c) => pageHandler.getContent(c));
+router.get('/api/pages/:id/permission', (c) => pageHandler.getPermission(c));
 
 // Auth
 router.post('/api/auth/login', (c) => authHandler.login(c));
