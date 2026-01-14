@@ -18,7 +18,7 @@ export interface PageRepository {
   delete(id: string): Promise<boolean>;
   
   // Member Management
-  getMembers(pageId: string): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[]>;
+  getMembers(pageId: string, pending?: boolean): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[]>;
   addMember(pageId: string, email: string): Promise<boolean>;
   removeMember(pageId: string, email: string): Promise<boolean>;
   

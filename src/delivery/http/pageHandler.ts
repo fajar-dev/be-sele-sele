@@ -134,7 +134,13 @@ export class PageHandler {
   async getMembers(c: Context) {
     const user = this.getUser(c);
     const id = c.req.param('id');
-    const members = await this.pageUsecase.getMembers(id, user.email);
+    const pendingQuery = c.req.query('pending');
+    
+    let pending: boolean | undefined = undefined;
+    if (pendingQuery === 'true') pending = true;
+    if (pendingQuery === 'false') pending = false;
+
+    const members = await this.pageUsecase.getMembers(id, user.email, pending);
     if (!members) {
       return c.json({ 
         success: false, 
@@ -230,6 +236,113 @@ export class PageHandler {
       success: true,
       message: 'Content updated successfully',
       data: null
+    });
+  }
+
+  async downloadMarkdown(c: Context) {
+    const user = this.getUser(c);
+    const id = c.req.param('id');
+    
+    const filePath = await this.pageUsecase.getMarkdownFilePath(id, user.email);
+    if (!filePath) {
+      return c.json({ 
+        success: false, 
+        message: 'Page not found or access denied', 
+        data: null 
+      }, 404);
+    }
+
+    try {
+        const file = Bun.file(filePath);
+        if (!(await file.exists())) {
+             return c.json({ 
+                success: false, 
+                message: 'File not found', 
+                data: null 
+              }, 404);
+        }
+
+        return new Response(file, {
+            headers: {
+                "Content-Type": "text/markdown",
+                "Content-Disposition": `attachment; filename="${id}.md"`,
+            },
+        });
+    } catch (e: any) {
+        console.error(e);
+         return c.json({ 
+            success: false, 
+            message: 'Error downloading file', 
+            data: null 
+          }, 500);
+    }
+  }
+
+  async downloadPdf(c: Context) {
+    const user = this.getUser(c);
+    const id = c.req.param('id');
+
+    const filePath = await this.pageUsecase.getMarkdownFilePath(id, user.email);
+    if (!filePath) {
+      return c.json({ 
+        success: false, 
+        message: 'Page not found or access denied', 
+        data: null 
+      }, 404);
+    }
+
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { mdToPdf } = require('md-to-pdf');
+        
+        const pdf = await mdToPdf({ path: filePath }).catch((err: any) => {
+            console.error('mdToPdf error:', err);
+            return null;
+        });
+
+        if (!pdf) {
+             throw new Error("Failed to generate PDF");
+        }
+
+        // Return PDF content
+        return new Response(pdf.content, {
+            headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `attachment; filename="${id}.pdf"`,
+            },
+        });
+
+    } catch (e: any) {
+        console.error(e);
+        return c.json({ 
+            success: false, 
+            message: 'Error generating PDF', 
+            data: null 
+          }, 500);
+    }
+  }
+
+  async getContent(c: Context) {
+    const user = this.getUser(c);
+    const id = c.req.param('id');
+    
+    const content = await this.pageUsecase.getPageContent(id, user.email);
+    
+    // Explicit null check. Empty string '' is valid content.
+    if (content === null) {
+       return c.json({ 
+        success: false, 
+        message: 'Page not found or access denied', 
+        data: null 
+      }, 404);
+    }
+
+    return c.json({
+      success: true,
+      message: 'Content retrieved successfully',
+      data: {
+        content
+      }
     });
   }
 }

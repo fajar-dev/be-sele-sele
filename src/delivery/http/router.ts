@@ -50,7 +50,11 @@ router.put('/api/pages/:id/member', (c) => pageHandler.addMember(c)); // User as
 router.delete('/api/pages/:id/member', (c) => pageHandler.removeMember(c));
 
 // Content
-router.post('/api/pages/:id', (c) => pageHandler.updateContent(c));
+// Content
+router.get('/api/pages/:id/md', (c) => pageHandler.downloadMarkdown(c));
+router.get('/api/pages/:id/pdf', (c) => pageHandler.downloadPdf(c));
+router.post('/api/pages/:id/content', (c) => pageHandler.updateContent(c));
+router.get('/api/pages/:id/content', (c) => pageHandler.getContent(c));
 
 // Auth
 router.post('/api/auth/login', (c) => authHandler.login(c));

@@ -11,6 +11,7 @@ Backend API for managing pages and collaborations, built with **Hono**, **Drizzl
     ```
 
 2.  **Environment Variables**
+
     Copy `.env.example` to `.env` and fill in the details:
 
     ```env
@@ -21,17 +22,26 @@ Backend API for managing pages and collaborations, built with **Hono**, **Drizzl
     GOOGLE_CLIENT_ID=your_google_client_id
     GOOGLE_CLIENT_SECRET=your_google_client_secret
     GOOGLE_REDIRECT_URL=http://localhost:3000
+    JWT_SECRET=supersecret
     ```
 
 3.  **Database Migration**
 
     ```bash
-    bun drizzle-kit migrate
+    bun run db:generate
+    bun run db:push
     ```
 
 4.  **Run Server**
+
     ```bash
     bun dev
+    ```
+
+5.  **Run PartyKit Server**
+
+    ```bash
+    bun run partykit:dev
     ```
 
 ## Authentication
@@ -68,8 +78,33 @@ Exchange Google ID Token for user session/verification (Upserts user).
     "success": true,
     "message": "Login successful",
     "data": {
-      "tokens": { ... },
-      "user": { ... }
+      "user": { ... },
+      "accessToken": "ey...",
+      "refreshToken": "uuid..."
+    }
+  }
+  ```
+
+#### Refresh Token
+
+Get a new access token using a valid refresh token.
+
+- **URL**: `/api/auth/refresh`
+- **Method**: `POST`
+- **Body**:
+  ```json
+  {
+    "refreshToken": "uuid..."
+  }
+  ```
+- **Response**: `200 OK`
+  ```json
+  {
+    "success": true,
+    "message": "Token refreshed successfully",
+    "data": {
+      "accessToken": "ey...",
+      "refreshToken": "uuid..."
     }
   }
   ```
@@ -196,6 +231,39 @@ Update the markdown content associated with the page. Updates `file/{id}.md`. **
     "success": true,
     "message": "Content updated successfully",
     "data": null
+  }
+  ```
+
+#### Download Markdown
+
+Download the page content as a markdown file.
+
+- **URL**: `/pages/:id/md`
+- **Method**: `GET`
+- **Response**: File download (`.md`)
+
+#### Download PDF
+
+Download the page content as a PDF file.
+
+- **URL**: `/pages/:id/pdf`
+- **Method**: `GET`
+- **Response**: File download (`.pdf`)
+
+#### Get Content
+
+Get the raw markdown content as text.
+
+- **URL**: `/pages/:id/content`
+- **Method**: `GET`
+- **Response**: `200 OK`
+  ```json
+  {
+    "success": true,
+    "message": "Content retrieved successfully",
+    "data": {
+      "content": "# Markdown Content..."
+    }
   }
   ```
 

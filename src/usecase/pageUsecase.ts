@@ -36,13 +36,13 @@ export class PageUsecase {
     return this.pageRepo.delete(id);
   }
 
-  async getMembers(pageId: string, userEmail: string): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[] | null> {
+  async getMembers(pageId: string, userEmail: string, pending?: boolean): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[] | null> {
     // Check permission - "get semua data member pada pages". Usually implies access.
     // If user has access (is member/owner), they can see members.
     const hasAccess = await this.pageRepo.findById(pageId, userEmail);
     if (!hasAccess) return null;
 
-    return this.pageRepo.getMembers(pageId);
+    return this.pageRepo.getMembers(pageId, pending);
   }
 
   async addMember(pageId: string, targetEmail: string, userEmail: string): Promise<boolean> {
@@ -70,9 +70,35 @@ export class PageUsecase {
     // This is `POST /pages/:id` for content. Is it considered an edit?
     // "bodynya content, setiap diisi maka ubah isi file markdownnya serta beruba updated_at pada row table pages"
     // Usually editing content is an edit. I'll enforce ownership.
-    const isOwner = await this.pageRepo.checkOwnership(id, userEmail);
-    if (!isOwner) return false;
+    const hasAccess = await this.pageRepo.findById(id, userEmail);
+    if (!hasAccess) return false;
 
     return this.pageRepo.updateContent(id, content);
+  }
+
+  async getMarkdownFilePath(id: string, userEmail: string): Promise<string | null> {
+    const hasAccess = await this.pageRepo.findById(id, userEmail);
+    if (!hasAccess) return null;
+
+    // Assuming files are stored in 'file/{id}.md' relative to project root.
+    // We should return absolute path to be safe/clear for handler.
+    const cwd = process.cwd();
+    return `${cwd}/file/${id}.md`;
+  }
+
+  async getPageContent(id: string, userEmail: string): Promise<string | null> {
+    const filePath = await this.getMarkdownFilePath(id, userEmail);
+    if (!filePath) return null;
+
+    try {
+      const file = Bun.file(filePath);
+      if (await file.exists()) {
+        return await file.text();
+      }
+      return ''; // or null if file missing implies empty
+    } catch (error) {
+       console.error(`Error reading file ${filePath}:`, error);
+       return null;
+    }
   }
 }

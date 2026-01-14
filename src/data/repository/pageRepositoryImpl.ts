@@ -217,7 +217,7 @@ export class PageRepositoryImpl implements PageRepository {
     }
 
     // Member Management
-    async getMembers(pageId: string): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[]> {
+    async getMembers(pageId: string, pending?: boolean): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[]> {
         const result = await db.select({
             email: collaborations.email,
             isOwner: collaborations.isOwner,
@@ -230,13 +230,19 @@ export class PageRepositoryImpl implements PageRepository {
         .leftJoin(users, eq(collaborations.email, users.email))
         .where(eq(collaborations.pageId, pageId));
         
-        return result.map(r => ({
+        let members = result.map(r => ({
             email: r.email,
             name: r.userName || null,
             isOwner: r.isOwner || false,
             isPending: !r.userId, // If user not found, pending is true
             avatar: r.userAvatar || null
         }));
+
+        if (pending !== undefined) {
+            members = members.filter(m => m.isPending === pending);
+        }
+
+        return members;
     }
 
     async addMember(pageId: string, email: string): Promise<boolean> {
