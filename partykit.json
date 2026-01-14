@@ -1,0 +1,5 @@
+{
+  "name": "sele-sele",
+  "main": "src/partykit/server.ts",
+  "compatibilityDate": "2025-01-14"
+}

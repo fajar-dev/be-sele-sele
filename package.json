@@ -2,6 +2,8 @@
   "name": "be-sele-sele",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build --minify --outfile dist/index.js --target bun src/index.ts",
     "partykit:dev": "partykit dev src/partykit/server.ts",
     "partykit:deploy": "partykit deploy src/partykit/server.ts",
     "db:generate": "drizzle-kit generate",
