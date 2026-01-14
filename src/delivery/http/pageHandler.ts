@@ -174,7 +174,7 @@ export class PageHandler {
         success: false, 
         message: 'Failed to add member. Check permissions or if user already exists.', 
         data: null 
-      }, 400); // Or 403
+      }, 400);
     }
     return c.json({
       success: true,
@@ -292,17 +292,29 @@ export class PageHandler {
     }
 
     try {
+        const file = Bun.file(filePath);
+        const content = await file.text();
+
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { mdToPdf } = require('md-to-pdf');
         
-        const pdf = await mdToPdf({ path: filePath }).catch((err: any) => {
-            console.error('mdToPdf error:', err);
+        console.log(`[PageHandler] Generating PDF for ${id}...`);
+        const pdf = await mdToPdf(
+            { content },
+            { 
+                launch_options: { 
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+                } 
+            }
+        ).catch((err: any) => {
+            console.error('[PageHandler] mdToPdf error:', err);
             return null;
         });
 
         if (!pdf) {
-             throw new Error("Failed to generate PDF");
+             throw new Error("Failed to generate PDF from content");
         }
+        console.log(`[PageHandler] PDF generated for ${id}`);
 
         // Return PDF content
         return new Response(pdf.content, {

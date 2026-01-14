@@ -22,16 +22,6 @@ export class PageRepositoryImpl implements PageRepository {
 
         const conditions = [
             eq(collaborations.email, userEmail),
-            // isPending logic removed from DB. 
-            // Query assumes if collaboration exists, it's valid, 
-            // OR if we only want "active" collaborations, we check if user exists in users table.
-            // But checking that in `conditions` for findAll is tricky without join.
-            // Requirement: "findAll(userEmail...)" - typically means pages where *this user* is a member.
-            // If userEmail is in collaborations, and userEmail exists in users table (which they must to be logged in and calling this),
-            // then it matters less. 
-            // But wait, "invited email" might not be in users table. 
-            // If I am looking at "my pages", I am a user. So I exist.
-            // So basic check is fine.
             isNull(pages.deletedAt)
         ];
 
@@ -41,7 +31,6 @@ export class PageRepositoryImpl implements PageRepository {
             conditions.push(eq(collaborations.isOwner, false));
         }
 
-        // Data Query
         const data = await db.select({
             id: pages.id,
             icon: pages.icon,
@@ -50,8 +39,6 @@ export class PageRepositoryImpl implements PageRepository {
             createdAt: pages.createdAt,
             updatedAt: pages.updatedAt,
             deletedAt: pages.deletedAt,
-            // We can't eagerly fetch array in one query easily with Drizzle MySQL without complex joins/aggregation
-            // So we will fetch basic data first, then fetch members.
         })
         .from(pages)
         .innerJoin(collaborations, eq(pages.id, collaborations.pageId))
@@ -60,7 +47,6 @@ export class PageRepositoryImpl implements PageRepository {
         .offset(offset)
         .orderBy(desc(pages.updatedAt));
 
-        // Fetch Members for these pages
         const pageIds = data.map(p => p.id);
         let membersMap: Record<string, { email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[]> = {};
 
@@ -69,7 +55,6 @@ export class PageRepositoryImpl implements PageRepository {
                 pageId: collaborations.pageId,
                 email: collaborations.email,
                 isOwner: collaborations.isOwner,
-                // Removed isPending column
                 userName: users.name,
                 userAvatar: users.avatar,
                 userId: users.id
@@ -80,7 +65,6 @@ export class PageRepositoryImpl implements PageRepository {
 
             membersData.forEach(m => {
                 if (!membersMap[m.pageId]) membersMap[m.pageId] = [];
-                // Dynamic isPending: true if user not found (userId is null)
                 const isPending = !m.userId;
                 
                 membersMap[m.pageId].push({
@@ -93,13 +77,11 @@ export class PageRepositoryImpl implements PageRepository {
             });
         }
 
-        // Attach members to data
         const finalData: Page[] = data.map(p => ({
             ...p,
             members: membersMap[p.id] || []
         }));
 
-        // Count Query
         const countResult = await db.select({ count: sql<number>`count(*)` })
         .from(pages)
         .innerJoin(collaborations, eq(pages.id, collaborations.pageId))
@@ -112,7 +94,6 @@ export class PageRepositoryImpl implements PageRepository {
     }
 
     async findById(id: string, userEmail: string): Promise<Page | null> {
-        // Must check collaboration exists and not pending
         const result = await db.select({
                 id: pages.id,
                 icon: pages.icon,
@@ -130,14 +111,11 @@ export class PageRepositoryImpl implements PageRepository {
             and(
                 eq(pages.id, id),
                 eq(collaborations.email, userEmail),
-                // Removed isPending check
                 isNull(pages.deletedAt)
             )
             )
         )
         .limit(1);
-
-
 
         return result[0] || null;
     }
@@ -168,47 +146,33 @@ export class PageRepositoryImpl implements PageRepository {
             deletedAt: null
         };
 
-        // Transaction to insert page and collaboration
         await db.transaction(async (tx) => {
             await tx.insert(pages).values(newPage);
             await tx.insert(collaborations).values({
                 pageId: newPageId,
                 email: userEmail,
-                // isPending removed
                 isOwner: true,
                 createdAt: new Date(),
                 updatedAt: new Date()
             });
         });
 
-        // Create empty markdown file
         await ensureDir();
         await fs.writeFile(path.join(FILE_DIR, `${newPageId}.md`), '');
 
         return newPage;
     }
 
-    // Permissions are checked in Usecase before calling update/delete?
-    // Actually, Usecase calls update, but update needs to ensure allowed.
-    // But standard repo update usually just updates by ID. Usecase should check permission via findById first.
     async update(id: string, page: Partial<Omit<Page, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>>): Promise<Page | null> {
-        // Assuming permission checked by Usecase calling findById
         await db.update(pages)
             .set({ ...page, updatedAt: new Date() })
             .where(eq(pages.id, id));
             
-        // We can't easily return the object here without basic findById, but to call findById we need userEmail.
-        // So usecase should re-fetch if needed. Or we just return what we have updated combined.
-        // Let's follow previous pattern: simple update.
-        // But wait, findById is now findById(id, userEmail). 
-        // I will leave it to Usecase to re-fetch if it wants, or implement a basic internal findById if absolutely needed.
-        // But implementing "findByIdInternal" is better.
         const result = await db.select().from(pages).where(eq(pages.id, id)).limit(1);
         return result[0];
     }
 
     async delete(id: string): Promise<boolean> {
-        // Permission checked by Usecase
         const run = await db.update(pages)
             .set({ deletedAt: new Date() })
             .where(eq(pages.id, id));
@@ -216,12 +180,10 @@ export class PageRepositoryImpl implements PageRepository {
         return run[0].affectedRows > 0;
     }
 
-    // Member Management
     async getMembers(pageId: string, pending?: boolean): Promise<{ email: string; name: string | null; isOwner: boolean; isPending: boolean; avatar: string | null }[]> {
         const result = await db.select({
             email: collaborations.email,
             isOwner: collaborations.isOwner,
-            // Removed isPending
             userName: users.name,
             userAvatar: users.avatar,
             userId: users.id
@@ -234,7 +196,7 @@ export class PageRepositoryImpl implements PageRepository {
             email: r.email,
             name: r.userName || null,
             isOwner: r.isOwner || false,
-            isPending: !r.userId, // If user not found, pending is true
+            isPending: !r.userId,
             avatar: r.userAvatar || null
         }));
 

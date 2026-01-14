@@ -54,14 +54,12 @@ export class AuthUsecase {
           lastLoginAt: new Date(),
       });
 
-      // Generate Access Token (JWT)
       const accessToken = await sign({
         sub: user.id,
         email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
       }, this.JWT_SECRET);
 
-      // Generate Refresh Token
       const refreshTokenStr = uuidv7();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 14); // 14 days expiry for refresh token

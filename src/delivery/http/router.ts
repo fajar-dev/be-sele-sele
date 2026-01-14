@@ -14,7 +14,6 @@ const pageHandler = new PageHandler(pageUsecase);
 import { RefreshTokenRepositoryImpl } from '../../data/repository/refreshTokenRepositoryImpl';
 
 // Auth Deps
-// Ensure these env vars are set!
 const userRepo = new UserRepositoryImpl();
 const refreshTokenRepo = new RefreshTokenRepositoryImpl();
 const authUsecase = new AuthUsecase(userRepo, refreshTokenRepo);
@@ -25,7 +24,6 @@ const router = new Hono();
 
 import { authMiddleware } from './middleware/authMiddleware';
 
-// ... (previous imports)
 
 // Pages (+ Auth Middleware)
 router.use('/api/pages/*', authMiddleware);
@@ -36,21 +34,10 @@ router.put('/api/pages/:id', (c) => pageHandler.updatePage(c));
 router.delete('/api/pages/:id', (c) => pageHandler.deletePage(c));
 
 // Members
-
 router.get('/api/pages/:id/member', (c) => pageHandler.getMembers(c));
-router.put('/api/pages/:id/member', (c) => pageHandler.addMember(c)); // User asked for PUT/DELETE to /pages/:id/member for adding/removing?
-// Prompt: "buat endpoint /pages/:id/member isinya, put,delete ke table collaborations."
-// "add email table collaboration dan hapus row pada table collaboration."
-// Is standard to use POST for add, but user specifically said "isinya, put,delete".
-// I will use PUT for add and DELETE for remove as requested.
-// Wait, PUT usually implies idempotency or update. POST is for create. 
-// Adding a member is creating a collaboration row. 
-// But if user requested PUT, I should probably stick to it or clarify?
-// "isinya, put,delete ke table collaborations"
-// Let's use PUT for Add and DELETE for Remove as explicitly requested.
+router.put('/api/pages/:id/member', (c) => pageHandler.addMember(c));
 router.delete('/api/pages/:id/member', (c) => pageHandler.removeMember(c));
 
-// Content
 // Content
 router.get('/api/pages/:id/md', (c) => pageHandler.downloadMarkdown(c));
 router.get('/api/pages/:id/pdf', (c) => pageHandler.downloadPdf(c));
