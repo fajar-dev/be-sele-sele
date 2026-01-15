@@ -1,4 +1,0 @@
--- ALTER TABLE `users` ADD `sub` varchar(255);--> statement-breakpoint
--- ALTER TABLE `users` ADD `name` varchar(255);--> statement-breakpoint
--- ALTER TABLE `users` ADD `avatar` text;--> statement-breakpoint
--- ALTER TABLE `users` ADD CONSTRAINT `users_sub_unique` UNIQUE(`sub`);

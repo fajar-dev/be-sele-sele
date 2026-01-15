@@ -4,3 +4,4 @@ node_modules/
 file/
 .partykit
 dist/
+drizzle/
