@@ -1,4 +1,4 @@
-import { mysqlTable, varchar, text, timestamp, boolean } from 'drizzle-orm/mysql-core';
+import { mysqlTable, varchar, text, timestamp, boolean, index } from 'drizzle-orm/mysql-core';
 import { uuidv7 } from 'uuidv7';
 
 export const pages = mysqlTable('pages', {
@@ -33,4 +33,4 @@ export const collaborations = mysqlTable('collaborations', {
   updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
 });
 
-
+export const collaborationsEmailIndex = index('collaborations_email_index').on(collaborations.email);
