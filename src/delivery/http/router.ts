@@ -11,12 +11,9 @@ const pageRepo = new PageRepositoryImpl();
 const pageUsecase = new PageUsecase(pageRepo);
 const pageHandler = new PageHandler(pageUsecase);
 
-import { RefreshTokenRepositoryImpl } from '../../data/repository/refreshTokenRepositoryImpl';
-
 // Auth Deps
 const userRepo = new UserRepositoryImpl();
-const refreshTokenRepo = new RefreshTokenRepositoryImpl();
-const authUsecase = new AuthUsecase(userRepo, refreshTokenRepo);
+const authUsecase = new AuthUsecase(userRepo);
 const authHandler = new AuthHandler(authUsecase);
 
 

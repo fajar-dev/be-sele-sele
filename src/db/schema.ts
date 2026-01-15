@@ -33,10 +33,4 @@ export const collaborations = mysqlTable('collaborations', {
   updatedAt: timestamp('updated_at').defaultNow().onUpdateNow(),
 });
 
-export const refreshTokens = mysqlTable('refresh_tokens', {
-    id: varchar('id', { length: 36 }).primaryKey().$defaultFn(() => uuidv7()),
-    token: text('token').notNull(),
-    userId: varchar('user_id', { length: 36 }).notNull().references(() => users.id),
-    expiresAt: timestamp('expires_at').notNull(),
-    createdAt: timestamp('created_at').defaultNow(),
-});
+
